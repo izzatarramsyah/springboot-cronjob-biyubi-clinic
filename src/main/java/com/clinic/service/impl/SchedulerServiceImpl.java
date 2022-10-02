@@ -79,7 +79,7 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 		// TODO Auto-generated method stub
 	}
 
-	@Scheduled(cron = "*/30 * * * * ?")
+	@Scheduled(cron = "${cron.scheduler}")
 	public void mainTask() {
 		LOG.traceEntry();
 		loadDBConfiguration();
