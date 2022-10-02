@@ -21,8 +21,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.clinic.dao.AppConfigDao;
+import com.clinic.dao.CheckUpDao;
 import com.clinic.dao.UserDao;
 import com.clinic.dao.VaccineDao;
+import com.clinic.entity.CheckUpMaster;
+import com.clinic.entity.CheckUpRecord;
 import com.clinic.entity.Child;
 import com.clinic.entity.User;
 import com.clinic.entity.VaccineMaster;
@@ -49,6 +52,9 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 	VaccineDao vaccineDao;
 	
 	@Autowired
+	CheckUpDao checkUpDao;
+	
+	@Autowired
 	UserDao userDao;
 	
 	@Autowired
@@ -59,6 +65,8 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 	private void loadDBConfiguration() {
 		this.appConfig = appConfigDao.loadConfig(APP_NAME, INSTANCE_NAME);
 	}
+	
+	private SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 	
 	private SimpleDateFormat formatDate = new SimpleDateFormat("yyyy-MM-dd");
 	
@@ -71,7 +79,7 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 		// TODO Auto-generated method stub
 	}
 
-	@Scheduled(cron = "${cron.scheduler}")
+	@Scheduled(cron = "*/30 * * * * ?")
 	public void mainTask() {
 		LOG.traceEntry();
 		loadDBConfiguration();
@@ -105,11 +113,36 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 					for (Child child : userDao.getChildId( user.getId() )) {
 						
 						long month = calculateMonth( formatDate.format(child.getBirthDate()) , getToday() );
+						
+						/* check check up schedule */
+						CheckUpMaster mst = checkUpDao.getListMstCheckUp( month );
+						if ( mst != null ) {
+							
+							CheckUpRecord checkUpRecord = checkUpDao.getCheckUpRecord( user.getId(), child.getId(), mst.getCode());
+							if ( checkUpRecord == null ) {
+								
+								/* check schedule */
+								long days = checkUpDao.getDays( month );
+								Calendar cal = Calendar.getInstance();
+								cal.setTime(child.getBirthDate());
+								cal.add(Calendar.DATE, (int) days);
+								Date scheduleDate = sdf.parse(sdf.format(cal.getTime()));
+								
+								if ( validDate(scheduleDate) ) {
+								
+									sendMessage(scheduleDate, user.getFullname(), user.getPhone_no(), "rekam pemeriksaan medis", child.getFullname());
+
+								}
+								
+							}
+							
+						}
+						
+						/* check vaccine schedule */
 						List < VaccineMasterDetail > detail = vaccineDao.getListVaccineMstDtl( month );
 						
 						if (detail.size() > 0) {
 							
-							SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
 							Calendar cal = Calendar.getInstance();
 							cal.setTime(child.getBirthDate());
 							int countDays = (int) (31 * month);
@@ -129,15 +162,7 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 								}
 								
 								if ( doVaccine ) {
-									long days = calculateDays( formatDate.format( scheduleDate ) , getToday() );
-									String daysInString = "";
-									if (days == 0) {
-										daysInString = "besok";
-									} else {
-										daysInString = days + "hari lagi";
-									}
-									String message = messageReminder.replaceAll("<parentName>", user.getFullname()).replaceAll("<childName>", child.getFullname()).replaceAll("<days>", daysInString);
-									post( new MessageRq( user.getPhone_no(), message ) );
+									sendMessage(scheduleDate, user.getFullname(), user.getPhone_no(), "rekam imunisasi", child.getFullname());
 								}
 								
 							}
@@ -152,6 +177,14 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 		} catch (Exception e) {
 			LOG.info("Error : " + e);
 		}
+	}
+	
+	private void sendMessage(Date scheduleDate, String fullname, String phoneNo, String activity, String childName){
+		long days = calculateDays( formatDate.format( scheduleDate ) , getToday() );
+		String daysInString = days == 0 ? "besok" : ( days + "hari lagi" );
+		String message = messageReminder.replaceAll("<parentName>", fullname).replaceAll("<activity>", activity)
+				.replaceAll("<childName>", childName).replaceAll("<days>", daysInString);
+		post( new MessageRq( phoneNo, message ) );
 	}
 	
 	private long calculateMonth(String birthDate, String currentDate) {
