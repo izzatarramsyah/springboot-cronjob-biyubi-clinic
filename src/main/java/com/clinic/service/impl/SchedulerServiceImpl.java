@@ -43,7 +43,7 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 	
 	private static final String APP_NAME = "BackendScheduler";
 
-	private static final String INSTANCE_NAME = "Notif";
+	private static final String INSTANCE_NAME = "NotifService";
 	
 	@Value("${message.reminder}")
 	private String messageReminder;
@@ -79,13 +79,13 @@ public class SchedulerServiceImpl extends RestServiceImpl implements SchedulerSe
 		// TODO Auto-generated method stub
 	}
 
-	@Scheduled(cron = "${cron.scheduler}")
+	@Scheduled(cron = "${cron.scheduler}", zone="GMT+7")
 	public void mainTask() {
 		LOG.traceEntry();
 		loadDBConfiguration();
 		Boolean run = new Boolean(appConfig.get("RUN").trim()) != null ? new Boolean(appConfig.get("RUN").trim()) : false;
 		if (run) {
-			LOG.info("Scheduler is running.");
+			LOG.info("Scheduler is running at " + new Date());
 			invokeTask();
 		} else {
 			LOG.info("Scheduler is not running, is safe to shutdown the service.");

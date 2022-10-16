@@ -11,7 +11,5 @@ public class MessageRs {
 	public void setStatus(boolean status) {
 		this.status = status;
 	}
-	
-	
 
 }
