@@ -1,10 +1,12 @@
-# Description
-Spring Cron Job Scheduler for Sending Whatsapp to Biyubi Clinic App
+# Java Simple Project
 
-# Project 
-Biyubi Clinic Growth Monitoring for 0-2 years child accroding Z Score WHO
+## Project Name
+Biyubi Clinic Growth Monitoring App 
 
-# Stack
-Java Spring Boot Cron Job, Postgre SQL
+## Project Description
+Cron Job Scheduler for Sending Notification Web Application with Growth Monitoring for 0-2 Years Child Accroding Z Score WHO Case Study
 
-
+## Project Stack
+- Java Spring Boot Version 8
+- mvn
+- PostgreSQL
